@@ -3,7 +3,7 @@ package arithmetical
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
 /**
-  * This object implements a parser and evaluator for the NB
+  * This object implements a parser and a reducer for the NB
   * language of booleans and numbers found in Chapter 3 of
   * the TAPL book.
   */

@@ -1,9 +1,12 @@
 package arithmetical
 
-trait Reducers extends Helpers{
+import scala.annotation.tailrec
+
+trait Reducers extends Helpers {
 
   /**
     * Computation and congruence rules applied
+    *
     * @param node AST that is meant to be reduced
     * @return reduced AST or stuck term
     */
@@ -11,14 +14,18 @@ trait Reducers extends Helpers{
     node match {
       case IfThenElse(e1, e2, e3) =>
         e1 match {
-          case e1:BoolValue => if(e1.x) e2 else e3
+          case e1: BoolValue => if (e1.x) e2 else e3
           case _ => IfThenElse(reduceGrammar(e1), e2, e3)
         }
 
       case IsZero(e1) =>
         e1 match {
           case ZeroValue() => BoolValue(true)
-          case Succ(e2) => if (e1.asInstanceOf[Succ].isNumeric) BoolValue(false) else IsZero(Succ(reduceGrammar(e2)))
+          case Succ(e2) =>
+            e2 match {
+              case e2: Succ if e2.isNumeric => BoolValue(false)
+              case _ => IsZero(Succ(reduceGrammar(e2)))
+            }
           case _ => IsZero(reduceGrammar(e1))
         }
 
@@ -38,7 +45,7 @@ trait Reducers extends Helpers{
           case ZeroValue() => node
           case Succ(e2) =>
             e1 match {
-              case e1:Succ if e1.isNumeric => node
+              case e1: Succ if e1.isNumeric => node
               case _ => Succ(Succ(reduceGrammar(e2)))
             }
           case _ => Succ(reduceGrammar(e1))
@@ -50,6 +57,7 @@ trait Reducers extends Helpers{
 
   /**
     * Big step semantics applied to the term
+    *
     * @param node AST that we want to reduce
     * @return reduced AST or stuck term
     */
@@ -81,16 +89,27 @@ trait Reducers extends Helpers{
     }
   }
 
-  def reducePred(e1Reduced: Term, e1: Term, node: Term):Term = e1Reduced match {
-    case e1Red:ZeroValue => e1Red
+  def reducePred(e1Reduced: Term, e1: Term, node: Term): Term = e1Reduced match {
+    case e1Red: ZeroValue => e1Red
     case e1Red if isNumericValue(e1) => e1Red.asInstanceOf[Succ].t
     case e1Red => checkStuckTerm(e1Red, node)
   }
 
-  def reduceIsZero(e1Reduced: Term, node: Term):Term = e1Reduced match {
+  def reduceIsZero(e1Reduced: Term, node: Term): Term = e1Reduced match {
     case _: ZeroValue => BoolValue(true)
     case e1Red if isNumericValue(e1Red) => BoolValue(false)
     case e1Red => checkStuckTerm(e1Red, node)
   }
 
+}
+
+trait RetryWithFunction {
+  @tailrec
+  final def retry(prev: Term)(fn: (Term) => Term): Term = {
+    fn(prev)
+    match {
+      case x if x == prev => x
+      case x => retry(x)(fn)
+    }
+  }
 }
